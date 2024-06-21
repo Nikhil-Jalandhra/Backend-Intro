@@ -10,7 +10,7 @@ connectionDB()
 .then(() => {
     const server = process.env.PORT || 8000
     app.listen(server, () => {
-        console.log("⚙️ Server is running at port: ", server)
+        console.log("⚙️  Server is running at port: ", server)
     })
     app.on("error", (error)=> {
         console.log("Error: ", error)
