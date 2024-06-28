@@ -1,1 +1,1 @@
-export const DB_NAME = "streaminghub"
+export const DB_NAME = "Youtube"
