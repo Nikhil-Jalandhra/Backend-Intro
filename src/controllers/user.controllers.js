@@ -3,10 +3,13 @@ import { ApiError } from "../utils/apiErrors.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import fs from "fs"
 
 const generateAccessAndRefreshToekn = async (userId) =>{
     try {
-        const user = User.findById(userId)
+        console.log(userId)
+        const user = await User.findById(userId)
+        console.log(user)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
@@ -35,11 +38,15 @@ const registerUser = asyncHandler(async (req, res) => {
         $or: [{ userName },{ email }]
     })
 
+    
     if (existedUser) {
+        fs.unlinkSync(req.files?.avatar[0]?.path)
+        fs.unlinkSync(req.files?.coverImage[0]?.path)
         throw new ApiError(409, "User with email or userName is already exists")
-    }
 
+    }
     const avatarLocalPath = req.files?.avatar[0]?.path;
+
     
     if (!avatarLocalPath) {
         throw new ApiError(400,"Avatar file is required")
@@ -53,7 +60,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-    const coverImage = uploadOnCloudinary(coverLocalPath);
+    const coverImage = await uploadOnCloudinary(coverLocalPath);
 
     
     if (!avatar) {
@@ -87,8 +94,10 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     const {userName, email, password} = req.body
 
-    if(!userName || !email){
-        throw new ApiError(400, "username or email is required")
+    console.log(userName, email, password)
+
+    if(!(userName || email)){
+        throw new ApiError(400, "userName or email is required")
     }
 
     const user = await User.findOne({
@@ -107,9 +116,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshToekn(user._id);
     
+    console.log("this is access", accessToken)
+    console.log("this is refresh", refreshToken)
+
     const loggedInUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
+
 
     const options = {
         httpOnly: true,
