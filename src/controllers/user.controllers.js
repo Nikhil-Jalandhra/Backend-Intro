@@ -232,7 +232,11 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "current user fethched successfully")
+    .json(new ApiError(
+        200, 
+        req.user, 
+        "User fethched successfully"
+    ))
 })
 
 const updateAccountDetail = asyncHandler(async (req, res) => {
@@ -242,7 +246,7 @@ const updateAccountDetail = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(req.user._id, 
+    const user = await User.findByIdAndUpdate(req.user._id, 
         {
             $set: {
                 fullName,
@@ -254,7 +258,11 @@ const updateAccountDetail = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(200, user, "Account details updated successfully")
+    .json(new ApiResponse(
+        200, 
+        user, "Account details updated successfully"
+
+    ))
 })
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
@@ -277,9 +285,15 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         {new: true}
     ).select("-password")
 
+    fs.unlinkSync(req.files?.avatar[0]?.path)
+
     return res
     .status(200)
-    .json(200, user, "Avatar uploaded successfully")
+    .json(new ApiResponse(
+        200, 
+        user, 
+        "Avatar uploaded successfully"
+    ))
 })
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
@@ -304,7 +318,84 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(200, user, "CoverImage uploaded successfully")
+    .json(new ApiResponse(
+        200, 
+        user, 
+        "CoverImage uploaded successfully"
+    ))
+})
+
+const getUseChannelProfile = asyncHandler(async (req, res)=> {
+    const { username } = req.params
+
+    if (!username?.trim) {
+        throw new ApiError(400, "Username is missing")
+    }
+
+    const channel = User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscribers" 
+                },
+                channelSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                userName: 1,
+                subscriberCount: 1,
+                channelSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1,
+
+            }
+        }
+    ])
+    
+    if(!channel?.length){
+        throw new ApiResponse(404, "chanel does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+
 })
 
 export { 
@@ -314,6 +405,7 @@ export {
     refreshAccessToken,
     changeCurrentPassword,
     getCurrentUser,
+    updateAccountDetail,
     updateUserAvatar,
     updateUserCoverImage
  }
