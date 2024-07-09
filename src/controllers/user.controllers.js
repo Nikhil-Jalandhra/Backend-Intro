@@ -328,7 +328,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 const getUseChannelProfile = asyncHandler(async (req, res)=> {
     const { username } = req.params
 
-    if (!username?.trim) {
+    if (!username?.trim()) {
         throw new ApiError(400, "Username is missing")
     }
 
@@ -364,7 +364,7 @@ const getUseChannelProfile = asyncHandler(async (req, res)=> {
                 },
                 isSubscribed: {
                     $cond: {
-                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }
@@ -407,5 +407,6 @@ export {
     getCurrentUser,
     updateAccountDetail,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUseChannelProfile
  }
