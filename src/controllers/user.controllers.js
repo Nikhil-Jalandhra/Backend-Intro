@@ -9,9 +9,7 @@ import mongoose from "mongoose";
 
 const generateAccessAndRefreshToekn = async (userId) =>{
     try {
-        console.log(userId)
         const user = await User.findById(userId)
-        console.log(user)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
